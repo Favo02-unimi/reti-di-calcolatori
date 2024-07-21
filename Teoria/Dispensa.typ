@@ -123,6 +123,13 @@
 / Sorgente e Licenza: #link("https://github.com/Favo02/reti-di-calcolatori")[github.com/Favo02/reti-di-calcolatori] (#link("https://creativecommons.org/licenses/by/4.0/")[CC-BY-4.0])
 / Ultima modifica: #datetime.today().display("[day]/[month]/[year]")
 
+#show outline.entry.where(
+  level: 1
+): it => {
+  v(15pt, weak: true)
+  strong(it)
+}
+
 // indice
 #outline(
   title: "Indice",
@@ -182,7 +189,7 @@ Porte PISO (Parallel In Serial Our) / SIPO (Serial In Parallel Out)
 
 === Stack TCP/IP
 
-= Livello 2: Data Link
+= Livello 2: Data Link _(Livello 1 TCP/IP)_
 
 Unità: frame
 
@@ -282,7 +289,7 @@ IEEE 802.1Q
 
 ====== Binary Exponential Backoff (BEB)
 
-= Livello 3: Rete
+= Livello 3: Rete _(Livello 2 TCP/IP)_
 
 Unità: pacchetto
 
@@ -367,6 +374,142 @@ Unità: pacchetto
 
 === Random Early Detection (RED)
 
+= Livello 4: Trasporto _(Livello 3 TCP/IP)_
+
+== Transmission Control Protocol (TCP)
+
+=== Header e Pseudoheader TCP
+
+=== Fasi della connessione
+
+==== Apertura: three way handshake
+
+==== Comunicazione
+
+===== Controllo del flusso
+
+====== Finestra di ricezione (Window Size) $W_s$
+
+====== Persistent timer
+
+====== Keep alive timer
+
+====== Silly Window Syndrome: Algoritmo di Clark
+
+https://en.wikipedia.org/wiki/Silly_window_syndrome
+
+min(1/2 \* buiffersize, MaximumSegmentSize)
+
+====== Cumulative ACK
+
+====== Delayed ACK: Algoritmo di Nagle
+
+Timer di piggybacking
+
+https://en.wikipedia.org/wiki/Nagle's_algorithm
+
+===== Gestione degli errori
+
+====== Retrasmission Timeout (RTO)
+
+====== Retransmission ambiguity problem: politica di Karn
+
+====== Fast retrasmission
+
+Rimanda il segmento quando riceve tre ACK duplicati, prima che il RTO scada
+
+https://superuser.com/questions/267729/tcp-retransmission-vs-tcp-fast-retransmission
+
+====== Timestamp
+
+===== Controllo della congestione: finestra di congestione $W_c$
+
+- Slow start fino a Slow Start Treshold SST
+- Congestione advoidance
+- Constant
+
+Errori:
+
+- scade il timer RTO
+- ACK duplicati
+
+==== Chiusura
+
+===== Four way close
+
+===== Three way close
+
+===== Half close
+
+== User Datagram protocol (UDP)
+
+= Livello 7: Applicazione _(Livello 4 TCP/IP)_
+
+== Domain Name System (DNS)
+
+=== Risoluzione iterativa
+
+=== Risoluzione ricorsiva
+
+== File Transfer Protocol (FTP)
+
+== Hyper Text Transfer Protocol (HTTP)
+
+Versione in-band (sia controllo che dati su un'unica connessione TCP) del FTP
+
+https://www.digitalocean.com/community/tutorials/http-1-1-vs-http-2-what-s-the-difference
+
+=== HTTP/1.0
+
+=== HTTP/1.1
+
+==== Pipelining e Head-of-Line Blocking
+
+==== Resource Inlining
+
+=== HTTP/2
+
+==== Streams
+
+==== Server push
+
+==== Compressione
+
+=== HTTPS
+
+== Email
+
+=== User Agent (UA)
+
+=== Message Transfer Agent (MTA)
+
+=== Invio: Simple Mail Transport Protocol (SMTP)
+
+=== Ricezione
+
+==== Internet Message Access Protocol (IMAP)
+
+==== Post Office Protocol (POP 3)
+
+=== Codifica Base64
+
+== Content Delivery Network (CDN)
+
+== Dynamic Adaptive Streaming over HTTP (DASH)
+
+== Session Initiation Protocol (SIP) e Voice over IP (VoIP)
+
+
+
+
+
+
+
+
+
+
+
+
 #pagebreak()
 // numerazione appendici
 #set heading(numbering: "A.1.")
@@ -374,6 +517,7 @@ Unità: pacchetto
 
 = Lista acronimi
 
+- FQDN: Fully Qualified Domain Name
 
 = Esercizi
 
@@ -381,7 +525,7 @@ Unità: pacchetto
 #pagebreak()
 
 #line(length: 100%)
-= #text(size: 20pt)[APPUNTI "VECCHI" DA SMISTARE:]
+= #text(size: 20pt, top-edge: 50pt)[APPUNTI "VECCHI" DA SMISTARE:]
 
 = Concetti preliminari/Varie
 
