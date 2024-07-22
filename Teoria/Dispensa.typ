@@ -172,11 +172,49 @@ Porte PISO (Parallel In Serial Our) / SIPO (Serial In Parallel Out)
 
 ==== Hub (livello 1)
 
+#informalmente[
+  Ripetitore stupido di quello che gli arriva da una porta a tutte le porte (broadcast)
+]
+
 ==== Bridge (livello 2)
+
+#informalmente[
+  Separa tipicamente due domini di collisione (le collisioni possono comunque avvenire nelle singole aree). È intelligente ed ha una tabella di forwarding
+]
+
+#nota[
+  Lavora in modo software
+]
 
 ==== Switch (livello 2)
 
+#informalmente[
+  Ogni porta (interfaccia) ha un suo dominio di collisione. È intelligente ed ha una tabella di forwarding
+]
+
+Tabella di forwarding:
+- riceve qualcosa
+  - mittente
+    - già in tabella: non succede nulla
+    - non in tabella: aggiunge il suo MAC e la porta a cui è connesso
+  - destinataorio:
+    - già in tabella: manda il frame solo a quella porta
+    - non in tabella: manda in flooding a tutte le porte tranne la sorgente
+
+#attenzione[
+  se un dispositivo non manda mai pacchetti (ma riceve e basta) non verrà mai associato il suo MAC alla sua porta
+]
+
+#nota[
+  Lavora in modo hardware, molto più efficiente di un bridge
+]
+
 ==== Router (livello 3)
+
+Composto da:
+- code di ingresso e uscita (buffer)
+- scheduler: decide quale e quando esaminare un pacchetto
+- interprete: analizza un pacchetto e lo manda su una coda di uscita
 
 === Mezzi trasmissivi (cavi)
 
@@ -187,71 +225,274 @@ Porte PISO (Parallel In Serial Our) / SIPO (Serial In Parallel Out)
 
 === Modello ISO/OSI
 
+- Livello 1: Fisico
+- Livello 2: Data link
+- Livello 3: Rete
+- Livello 4: Trasporto
+- Livello 5: Sessione
+- Livello 6: Presentazione
+- Livello 7: Applicazione
+
+#informalmente[
+  Modello teorico non davvero usato
+]
+
 === Stack TCP/IP
+
+- Livello 1 (1+2 ISO/OSI): Data link
+- Livello 2 (3 ISO/OSI): Rete
+- Livello 3 (4 ISO/OSI): Trasporto
+- Livello 4 (5+6+7 ISO/OSI): Applicazione
+
+#informalmente[
+  Standard de facto
+]
 
 = Livello 2: Data Link _(Livello 1 TCP/IP)_
 
 Unità: frame
 
+#informalmente[
+  Gestisce logicamente l'accesso al canale fisico (livello inferiore), evitando collisioni.
+]
+
 == Multiple Access Control (MAC)
 
-Accesso fisico al canale
+#informalmente[
+  Parte "bassa" del livello: gestice l'accesso fisico al canale
+]
 
 === Tempi di trasmissione
 
-==== Velocità di trasmissione $V_x$
+Tempi di accesso/scrittura al canale fisico
+
+==== Velocità di trasmissione $V_x$ (banda/bitrate)
+
+Misurato in $b p s$ (bit per second)
+
+#informalmente[
+  Quanto velocemente si riesce ad "infilare" bit nel cavo
+]
+
+#nota[
+  Il clock è limitato dalla larghezza di banda 
+]
 
 ==== Tempo di trasmissione $t_x$
 
-==== Larghezza di banda e Clock
+#informalmente[
+  Tempo che ci mettono i dati da mandare ad essere "inseriti" nel cavo
+]
+
+Misurato in $s$ (secondi):
+
+$ t_x = N/V_x $
+
+Dove $N$ è il numero di bit da inviare e $V_x$ è la banda (velocità di trasmissione) del cavo utilizzato
+
+==== Velocità di propagazione $V_p$
+
+Misurato in $m\/s$ (metri al secondo)
+
+#informalmente[
+  Velocità alla quale il segnale (elettrico o luce) si propaga nel cavo
+]
 
 ==== Tempo di propagazione $t_p$
 
+#informalmente[
+  Tempo che ci mette il dato ad arrivare all'altra estremita del cavo
+]
+
+Misurato in $s$ (secondi):
+
+$ t_p = L / V_p $
+
+Dove $L$ è la lunghezza del cavo e $V_p$ è la velocità di propagazione
+
 ==== Rount trip time $R T T$
+
+#informalmente[
+  Tempo che ci mette il dato ad *andare* e *tornare* al mittente
+]
+
+Misurato in $s$ (secondi):
+
+$ R T T = 2 t_p $
 
 ==== Retrasmission timeout $R T O$
 
+#informalmente[
+  Tempo prima di reinviare ancora un certo dato, tipicamente perchè non si è ricevuto un ACK
+]
+
 ==== Efficienza della rete $U$
+
+#informalmente[
+  Quanto il canale è occupato, ovvero se stiamo continuamente "infilando" dati nel canale o stiamo aspettando tanto tempo per la propagazione
+]
+
+Misura adimensionale, tra $0$ e $1$:
+
+$ U = t_x / (t_x + 2 t_p) $
+
+#attenzione[
+  Nei protocolli a finestra (con finestra $k$) diventa:
+  $ U = k dot t_x / (t_x + 2 t_p) $
+]
 
 ==== Jitter
 
+#informalmente[
+  Due pacchetti non possono metterci lo stesso tempo a viaggiare dato che la rete è complessa e possono accadere innumerevoli problemi. Il jitter è la varianza tra i vari tempi di trasmissione
+]
+
 ==== Latenza
+
+Tempo totale impegato dal pacchetto per essere spedito e ricevuto.
+
+$ T = t_"coda" + t_"elaborazione" + t_"trasmissione" + t_"propagazione" $
+
+- $t_"coda"$: (generalmente trascurabile) tempo di permanenza nella coda di invio
+- $t_"elaborazione"$: (generalmente trascurabile) tempo impegato dal nodo per decidere come inoltrare il pacchetto
+- $t_"trasmissione"$: $"dimensione pacchetto"/"bitrate"$ tempo necessario per trasferire i dati dal dispositivo al mezzo fisico
+- $t_"propagazione"$: $"distanza"/"velocità mezzo"$ tempo che impega l'informazione ad arrivare da un capo all'altro del mezzo fisico
 
 === Codifiche
 
+I dati quando vengono trasmessi sono codificati. La classica codifica è $1$ alto, $0$ basso.
+
 ==== Codifica di Manchester
+
+#informalmente[
+  Viene trasferito anche il clock insieme ai dati, codifica autosincronizzante
+]
 
 ==== Codifica Non Return to Zero Inverted (NRZI)
 
+#informalmente[
+  $0$ mantiene lo stesso segnale che lo precedeva, $1$ lo inverte.
+  Si lavora sempre con cambi di fronte (come nella codifica Manchester)
+]
+
 === Frammentazione
+
+#informalmente[
+  Non è possibile mandare file interi, vengono frammentati in tanti frame (livello 2), pacchetti (livello 3) o segmenti (livello 4)
+]
 
 == Logical Link Layer (LLC)
 
-Gestione logica del livello
+#informalmente[
+  Gestione logica del livello, controllo di flusso ed errori
+]
 
 === Livello 2 best-effort
 
+#informalmente[
+  Ci prova a trasmettere senza errori, ma possono accadere e non vengono controllati o corretti
+]
+
 ==== Character stuffing
+
+#informalmente[
+  Differenziare caratteri di controllo da caratteri nel payload. Vengono aggiunti dei caratteri appositi (per disambiguare) quando nel payload si incontrano determinati caratteri riservati al controllo
+]
+
+- $"DELSTX" -> "Inizio frame"$
+- $"DELETX" -> "Fine frame"$
+
+Sostituisco tutti i $"DEL"$ singoli con:
+- $"DEL" -> "DELDEL"$
+
+#informalmente[
+  Quando leggo un DEL non susseguito da un altro DEL allora so che quello è controllo
+]
 
 ==== Bit stuffing
 
+#informalmente[
+  Stesso principio del character stuffing ma con i bit
+]
+
+Disambiguare $01111110$ da tanti $1$ nel payload:
+- ogni cinque $1$ inserisco uno $0$
+
+In lettura se leggo sei $1$ allora è la flag, altrimenti posso scartare lo $0$ dopo il quinto $1$.
+
 === Livello 2 affidabile: High-Level Data Link Control (HDLC) e (Point-to-Point) PPP
 
-==== Utilizzo del canale
+#informalmente[
+  Protocolli affidabili: controllano e correggono la perdita di messaggi, attraverso dei messaggi di ACK
+]
+
+Per fare ciò usano dei meccanismi come:
 
 ==== Idle RQ
 
+#informalmente[
+  Fino a quando non ricevo un ACK per l'ultimo segmento mandato aspetto. Quando scade il timer di ritrasmissione ($R T O$) allora lo reinvio e aspetto ancora l'ACK
+]
+
+#nota[
+  Identificatori distinti: $1$
+]
+
 ==== Protocolli a finestra (Continuous RQ)
+
+#informalmente[
+  Mandano più frame prima di aspettare (non solo uno come Idle RQ)
+]
+
+#attenzione[
+  Cambia l'utilizzo del canale, dipende anche la finestra $k$
+]
 
 ===== Go back-N
 
-Almeno $N+1$ identificatori
+#informalmente[
+  Il mittende continua a mandare i $k$ frame successivi all'ultimo frame convalidato. Il destinatario scarta tutto ciò che è fuori sequenza
+]
+
+#nota[
+  Identificatori distinti: $k+1$
+]
 
 ===== Selective repeat
 
-Almeno $2  N$ identificatori
+#informalmente[
+  Il mittente manda $k$ frame. Il destinatario tiene in un buffer tutti i frame ricevuti (non duplicati), anche quelli fuori sequenza. Manda come ACK l'ultimo frame in sequenza, il mittente rimanderà solo il primo senza ACK, credendo che tutti gli altri siano stati ricevuti
+
+  #attenzione[
+    Se $k = 3$ e vengono persi i frame $2, 3$ allora il destinatario farà ACK di $1$, il mittente manderà solo $2$ e dopo l'ACK di $2$ allora manderà $3$. Questo perchè solo a finestra "completa" vengono mandati tutti, dopo ne manda solo quello "richiesto", essendo ottimista che gli altri siano ricevuti anche se fuori sequenza
+  ]
+]
+
+#nota[
+  Identificatori distinti: $2k$
+]
+
+====== ACK selettivo
+
+#informalmente[
+  Un ACK valida solo il frame specificamente validato
+]
+  
+====== ACK cumulativo
+
+#informalmente[
+  Un ACK valida tutti i frame minori o uguali al frame validato
+]
+  
+#attenzione[
+  Spesso è conveniente usare un approccio misto: mittente Go back N, destinatario Selective repeat
+]
 
 == Reti broadcast
+
+#informalmente[
+  Reti che comunicano mandando ogni frame a tutte le stazioni, poi solo il destinatario la terrà, gli altri scartano
+]
 
 === Local Area Network (LAN)
 
@@ -263,20 +504,52 @@ IEEE 802.1Q
 
 === Accesso al canale: collisioni
 
+#informalmente[
+  Se si usa un canale condiviso, possono avvenire delle collisioni: più stazioni trasmettono sullo stesso cavo e i dati si "schiacciano a vicenda", diventano illeggibili
+]
+
 ==== Algoritmi deterministici
 
 ===== Round robin
 
+#informalmente[
+  Viene dato un tot di tempo ad ogni stazione, molto inefficiente (anche se non hai da comunicare usi il tuo tempo)
+]
+
 ===== Token-ring
+
+#informalmente[
+  Solo chi ha il token può comunicare, se non hai nulla da dire fai girare il token velocemente. Prolemi:
+  - se il token si perde?
+  - se chi ha il token non lo cede più?
+]
 
 ==== Algoritmi probabilistici
 
 ===== ALOHA
 
+#informalmente[
+  Appena si ha da trasmettere si trasmette, se avviene una collisione si aspetta tempo randomico $t$ (calcolato basandosi su una Poisson). Non ci si ferma appena avviene una collisione ma si trasmette comunque tutto
+]
+
 ===== Carrier Sense Multiple Access with Collision Detection (CSMA-CD)
 
-- 1P: carrier sense persistente
-- 0P (termine non standard): carrier sense a intervalli randomici
+#informalmente[
+  Si effettua CS: se il canale è vuoto si trasmette, altrimenti si aspetta.
+
+  Quando avviene una collisione, allora si interrompe subito la trasmissione e si aspetta tempo randomico che aumenta esponenzialmente (BEB, spiegato sotto) (per 15 volte, dopo si abortisce la comunicazione)
+]
+
+#attenzione[
+  Per poter rilevare una collisione, il tempo di trasmissione deve essere maggiore della propagazione:
+  $ t_x > 2 t_p $
+  #informalmente[
+    Altrimenti la stazione non sa se a collidere è stato un suo frame o meno
+  ]
+]
+
+- 1P: carrier sense persistente, appena si libera trasmetto
+- 0P (termine non standard): carrier sense a intervalli randomici, se libero trasmetto, altrimenti aspetto tempo random
 
 *Standard IEEE 802.3:*
 
@@ -289,48 +562,184 @@ IEEE 802.1Q
 
 ====== Binary Exponential Backoff (BEB)
 
+#informalmente[
+  Ogni volta che avviene una collisione si aspetta tempo random che aumenta in manieta esponenziale con l'aumentare delle collisioni. Alla 16 collisione si abortisce la comunicazione
+]
+
 = Livello 3: Rete _(Livello 2 TCP/IP)_
 
 Unità: pacchetto
 
+#informalmente[
+  Fanno comunicare delle sottoreti "distanti" che formano internet
+]
+
 == Addressing
+
+#informalmente[
+  Fornire un indirizzo univoco ad ogni host presente in internet, in modo che è possibile comunicarci
+
+  #attenzione[
+    Non è del tutto vero, molto molto molto spesso tanti host hanno un unico IP pubblico (quello della LAN) e tanti IP privati
+  ]
+]
 
 === Internet Protocol Version 4 (IPv4)
 
 ==== Header pacchetto
 
+#figure(caption: "Header pacchetto IP")[#image("imgs/ip-header.png", width: 80%)]
+
 ===== Frammentazione
 
-==== Sottoreti
+Quando viene frammentato un dato in tanti pacchetti IP gli header importanti sono:
+- *Identification (ID)*: identificatore (uguale in tutti i pacchetti che formano il dato diviso)
+- *More fragments (MF)*: se ci sono altri frammenti dopo il corrente
+- *Fragment offset*: quando è spostato il frammento corrente rispetto al totale del dato (vengono contati 8 Byte alla volta)
+- *Total size*: grandezza totale del dato da trasmettere
+- *Payload size*: grandezza del payload di questo pacchetto
+
+==== Subnet mask
+
+#informalmente[
+  Separa la parte che identifica la rete da quella che identifica gli host, maschera binaria di 32 bit
+]
+
+==== Suddivisione indirizzi pubblici
 
 ===== Classi NetID
 
-===== Subnetting
+#informalmente[
+  Classi "statiche" con numero di host fissi
+]
+
+- Classe A: 8 bit di subnet mask
+- Classe B: 16 bit di subnet mask
+- Classe C: 24 bit di subnet mask
 
 ===== Classless Inter-Domain Routing (CIDR)
+
+#informalmente[
+  Il numero di bit di rete non è più per forza 8, 16 o 24 ma può essere qualsiasi numero. Si indica con \<IP>/\<numero di 1 nella subnet>, ad esempio 238.77.1.78/23
+]
+
+==== Suddivisione indirizzi privati: subnetting
+
+#informalmente[
+  È possibile suddividere la parte privata di una rete in tante altre sottoreti, effettuando del subnetting
+]
 
 ==== Comunicazione
 
 ===== Network Address Translation (NAT)
 
+#informalmente[
+  Serve per limitare l'uso di IPv4, ogni rete ha un solo IP pubblico e tanti privati. Traduce le richieste effettuate dall'interno della rete da IP privato a IP pubblico.
+
+  #attenzione[
+    Per fare ciò ha bisogno anche di informazioni di livello 4, ovvero la porta
+  ]
+]
+
+Formato tabella:
+- IP sorgente
+- Porta sorgente
+- IP destinazione
+- Porta destinazione
+- Porta NAT
+
 ===== Address Resolution Protocol (ARP / RARP)
+
+#informalmente[
+  All'interno di una LAN è necessario parlare a livello 2, quindi utilizzano i MAC address (non IP). ARP serve per tradurre un indirizzo IP ad un indirizzo MAC, inviando una richiesta il broadcast
+]
+
+- Se in ARP cache: allora si ha già il MAC
+- Altrimenti si manda in broadcast una richiesta con:
+  - IP dell'host di cui ci serve il MAC
+  - Nostro IP
+  - Nostro MAC
+- L'host che stiamo cercando risponde al nostro MAC con suo il MAC
+
+#attenzione[
+  La cache ARP ha un timeout, scadono le entry
+]
+
+#informalmente[
+  RARP fa la stessa cosa ma al contrario, dato un MAC restituisce un IP (molto molto poco usato)
+]
 
 ===== Dynamic Host Configuration Protocol (DHCP)
 
-- Discover
-- Offer
-- Request
-- ACK
+#informalmente[
+  Quando un host di connette ad una rete non ha (ancora) un IP (privato), qualcuno glielo deve fornire, questo qualcuno è il server DHCP
+
+  #attenzione[
+    Ce ne possono essere più di uno in una rete
+  ]
+]
+
+- Discover: il dispositivo manda in broadcast (src: 0.0.0.0, dst: 255.255.255.255) una richiesta con un certo transaction ID
+- Offer: i server DHCP rispondono in broadcast (ma con stesso transaction ID) offrendo un IP
+- Request: il dispositivo (sempre con src 0.0.0.0 e dst 255.255.255.255) ne accetta una
+- ACK: il server risponde in broadcast con ACK, da questo momento il client ha un IP
 
 ===== Internet Control Message Protocol (ICMP)
 
+#informalmente[
+  Informazioni di controllo del flusso di internet, ad esempio segnalazione problemi, congestione o ping
+]
+
 === Internet Protocol Version 6 (IPv6)
+
+#informalmente[
+  Nuova versione del protocollo, con molti (mooolti) più indirizzi disponibili di IPv4 (128 bit), questi non finiscono
+]
 
 ==== Header pacchetto
 
+#figure(caption: "IPv6 header")[#image("imgs/ipv6-header.png", width: 60%)]
+
+#informalmente[
+  Sono stati snelliti di molto gli header, ora sono come una lista concatenata, il next header punta ad un campo opzionale che può essere presente tra la fine degli header ed il payload. A sua volta ogni next header può puntare ad un successivo, fino all'ultimo che fa da "tappo"
+]
+
+===== Source routing (esatto ed approssimato)
+
+#informalmente[
+  Il source routing permette di far viaggiare il pacchetto seguendo un percorso prestabilito (e non deciso dai router)
+
+  - esatto: vengono specificati tutti i router da cui passare (tramite header opzionali)
+  - approssimato: vengono specificati solo alcuni punti chiave (tramite header opzionali)
+]
+
+Certo, ecco dei rapidi riassunti per ogni header:
+
+===== Source routing (esatto ed approssimato)
+
+#informalmente[
+  Il source routing permette di specificare il percorso esatto che un pacchetto deve seguire attraverso la rete, piuttosto che lasciare che i router decidano il percorso.
+
+  - *Esatto:* Viene definito ogni singolo router attraverso cui deve passare il pacchetto (tramite header opzionali).
+  - *Approssimato:* Vengono definiti solo alcuni punti chiave del percorso (tramite header opzionali).
+]
+
 ===== Frammentazione
 
+#informalmente[
+  A differenza di IPv4, la frammentazione può avvenire solo al nodo sorgente e NON lungo il percorso (cosa fatitbile il IPv4). Questo scarica overhead dai router lungo il cammino, ma non permette al pacchetto di passare da link il cui MTU (Maximum Trasmissiun Unit) è maggiore della grandezza del pacchetto
+
+  #nota[
+    Vengono mandati dei pacchetti MTU discoveri attraverso ICMP per sapere se un pacchetto può passare o meno
+  ]
+]
+
 ==== Compatibilità con IPv4
+
+Soluzioni:
+- *Tunneling*: incapsulare pacchetto IPv6 in un pacchetto IPv4, ad esempio per connettere reti IPv6 isolate
+- *Dual stack*: dispositivi che hanno sia un'interfaccia IPv4 che IPv6 in modo da poter comunicare con entrambi i protocolli
+- *NAT*: utilizzo di NAT che trasformano indirizzi IPv4 in IPv6 o viceversa per far comunicare reti che utilizzano protocolli diversi
 
 == Routing
 
@@ -436,6 +845,8 @@ Errori:
 ==== Chiusura
 
 ===== Four way close
+
+#figure(caption: "TCP 4 way close")[#image("imgs/tcp-four-way-close.png", width: 40%)]
 
 ===== Three way close
 
