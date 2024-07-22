@@ -275,7 +275,7 @@ Misurato in $b p s$ (bit per second)
 ]
 
 #nota[
-  Il clock è limitato dalla larghezza di banda 
+  Il clock è limitato dalla larghezza di banda
 ]
 
 ==== Tempo di trasmissione $t_x$
@@ -477,13 +477,13 @@ Per fare ciò usano dei meccanismi come:
 #informalmente[
   Un ACK valida solo il frame specificamente validato
 ]
-  
+
 ====== ACK cumulativo
 
 #informalmente[
   Un ACK valida tutti i frame minori o uguali al frame validato
 ]
-  
+
 #attenzione[
   Spesso è conveniente usare un approccio misto: mittente Go back N, destinatario Selective repeat
 ]
@@ -616,6 +616,7 @@ Quando viene frammentato un dato in tanti pacchetti IP gli header importanti son
 - Classe A: 8 bit di subnet mask
 - Classe B: 16 bit di subnet mask
 - Classe C: 24 bit di subnet mask
+- Classi D ed E: riservate per scopi speciali
 
 ===== Classless Inter-Domain Routing (CIDR)
 
@@ -743,45 +744,153 @@ Soluzioni:
 
 == Routing
 
+#informalmente[
+  Instradare i pacchetti per raggiungere la loro destinazione, facendo possibilmente il percorso migliore (numero di HOP o tempo)
+]
+
 === Distance Vector (DV)
+
+#informalmente[
+  - Gli host mantengono una tabella con:
+    - Nodo da raggiungere
+    - Distanza
+    - Primo HOP per raggiungerlo
+  - Ogni tot tempo viene propagato questo Distance vector (SOLO nodo + distanza, senza link utilizzato) ai propri adiacenti
+  - Gli adiacenti aggiornano le distanze
+]
+
+==== Trigger update
+
+#informalmente[
+  Al posto di aspettare che scada il timer e poi propagare, viene propagato appena c'è un cambiamento
+
+  #attenzione[
+    Non risolve il count to infinity o l'effetto bouncing in quanto il pacchetto si può perdere
+  ]
+]
 
 ==== Problematiche
 
 ===== Count to infinity ed Effetto bouncing
 
+#informalmente[
+  Dato che non viene propagato quale link si usa per raggiungere un nodo, allora se ad esempio di rompe un link e si perde il pacchetto che aggiorna in negativo, allora si forma un circolo vizioso dove l'adiacente comunica al nodo su cui si è rotto il link che in realtà è raggiungbile, senza accorgersi che passa attraverso di lui (quindi si inizia a rimbalzare e si arriva a distanza infinita)
+]
+
 ===== Split Horizon
+
+#informalmente[
+  Si condivide sul link che si vuole utilizzare distanza infinita, in modo da non poter causare problemi
+]
 
 ==== Routing Information Protocol (RIP)
 
+#informalmente[
+  Usa i distance vector
+]
+
 === Link State (LS)
 
+#informalmente[
+  Ogni nodo condivide con tutto il resto della rete (in flooding) le informazioni sui suoi adiacenti, in modo che ogni nodo della rete potrà avere un idea chiara di tutta la rete (ognuno costruisce il grado completo) ed ognuno può calcolare il percorso migliore.
+
+  Vengono aggiunti anche gli ACK e i sequence number, per evitare che le informazioni di un nodo arrivino ad un altro attraverso percorsi diversi e continuino a viaggiare all'infinito
+]
+
 ==== Open Shortest Path First (OSPF)
+
+#informalmente[
+  Usa i Link state
+]
 
 ==== Spanning tree broadcast
 
 === Path Vector
 
+#informalmente[
+  Simile ai distance vector, ma è presente tutta la path che deve percorrere, per evitare di causare problemi come il count to infinity. Ogni nodo condivide con i suoi adiacenti tutto il percorso per raggiungere altri nodi
+]
+
 ==== Border Gateway Protocol (BGP)
 
+#informalmente[
+  Usa i Path vector
+]
+
 === Multi Packet Label Switching (MPLS)
+
+#informalmente[
+  Per aumentare l'efficienza, spesso nelle aree0 e grandi reti, al posto che fare routing IP si effettua routing basato su etichette.
+
+  I router agli estremi dell'area incapsulano il pacchetto in dei pacchetti apposta dotati di un'etichetta. I router interni alla rete in base all'etichetta e alla porta in ingresso, smistano il pacchetto cambiando etichetta e porta in uscita
+
+  #nota[
+    I router agiscono come dei grandi switch, senza aprire il pacchetto IP e calcoalre il percorso. Molto efficiente
+  ]
+]
 
 === Architettura ottimizzata
 
 ==== Autonomous system (AS)
 
+#informalmente[
+  Grandi reti gestite da una singola organizzazione (spesso internet service provider ISP), ed utilizzano una certa politica di routing.
+
+  Tanti AS sono connessi tra loro attraverso la internet backbone formano  tutta internet. Vengono etichettati da IANA (Internet Assigned Numbers Authority)
+]
+
 ==== Designated router e Software Defined Network (SDN)
 
-== Schedulazione e priorità
+#informalmente[
+  Spesso, in grandi reti, sono presenti dei router designati a calcolare i percorsi migliori e comunicarli, centralizzando le operazioni di calcolo.
 
-=== Quality of Service (QoS)
+  Quando questa funzione è spostata in cloud (per evitare singolo punto di failure e garantire maggiore affidabilità) si parla di Software defined network
+]
+
+== Schedulazione e priorità: Quality of Service (QoS)
+
+#informalmente[
+  In base ai servizi utilizzati, alcuni pacchetti possono avere una priorità maggiore rispetto ad altri (come streaming rispetto ad email).
+
+  Per assecondare queste richieste, esiste la Quality of Service, che staibilisce appunto una priorità ai vari pacchetti, che viene comunicata ai router (che attuano delle politiche per adattarsi)
+]
 
 === Weighted Fair Queuing (WFQ)
 
+#informalmente[
+  Un router possiede più code, ognuna con un certo peso. I pacchetti in ingresso vengono distribuiti sulle varie code in base alla loro priorità e viene assegnata ad ogni pacchetto una quantità di banda proporzionale in base alla priorità di quella coda
+]
+
 === Call Admission
+
+#informalmente[
+  Quando tanti pacchetti al alta priorità devono viaggiare (come in una chiamata VoIP), allora viene effettuata una Call Admission: viene controllato se sono presenti abbastanza risorse per gestire questa call.
+
+  Se queste risorse sono presenti la call viene avviata, altrimenti viene rifiutata
+]
 
 === Token Bucket
 
-=== Random Early Detection (RED)
+#informalmente[
+  Limita il numero di pacchetti che possono viaggiare:
+  - vengono generati ad intervallo costante dei token
+  - quando arriva un pacchetto controlla se sono presenti sufficienti token per passare
+    - in caso positivo li preleva e passa
+    - altrimenti viene scartato o viene messo in coda fino a quando non sono presenti abbastanza token
+]
+
+=== Tail drop e Random Early Detection (RED)
+
+#informalmente[
+  Tail drop:
+  - quando c'è spazio nella coda di un router allora viene ammesso tutto
+  - quando la coda è piena viene droppato tutto
+
+  Random early detection:
+  - quando si è sotto una certa soglia minima: viene accettato tutto
+  - quando si è sopra una certa soglia massima: viene droppato tutto
+  - quando si è tra le due soglie: alcuni pacchetti random vengono droppati (proporzionalmente a quanto è piena la coda)
+]
 
 = Livello 4: Trasporto _(Livello 3 TCP/IP)_
 
