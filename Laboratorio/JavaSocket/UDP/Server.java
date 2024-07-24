@@ -1,6 +1,5 @@
-// Questo codice fa (molto) schifo ma l'esame si passa solo scrivendo questa robaccia :(
+// SERVER UDP
 
-import java.util.*;
 import java.io.*;
 import java.net.*;
 
@@ -15,9 +14,9 @@ public class Server {
         // creazione socket
         try {
             socket = new DatagramSocket(PORT);
-            log("Creato server: " + socket.getLocalAddress() + " porta " + socket.getLocalPort() + "\n");
-        } catch (Exception e) {
-            log("Errore creazione socket\n");
+            System.out.println("Creato server: " + socket.getLocalAddress() + " porta " + socket.getLocalPort());
+        } catch (SocketException e) {
+            System.out.println("Errore creazione socket");
             return;
         }
 
@@ -27,39 +26,45 @@ public class Server {
 
                 // ricevi
                 DatagramPacket rec = receive(socket, buffer);
-                log("Ricevuto da (" + rec.getAddress() + " porta " + rec.getPort() + "):\n" + getMessage(rec) + "\n");
+                System.out.println("Ricevuto da (" + rec.getAddress() + " porta " + rec.getPort() + "):\n" + getMessage(rec));
 
                 // rispondi
                 send(socket, buffer, rec.getAddress(), rec.getPort(), "ACK");
-                log("Risposto a (" + rec.getAddress() + " porta " + rec.getPort() + "):\nACK\n");
+                System.out.println("Risposto a (" + rec.getAddress() + " porta " + rec.getPort() + "):\nACK");
 
-                log("---\n");
+                System.out.println("---");
 
-            } catch (Exception e) {
-                log("Errore nello scambio di messaggi\n");
+            } catch (IOException e) {
+                System.out.println("Errore nello scambio di messaggi");
             }
 
         }
-
-        // in caso non sia necessario che il server ascolti all'infinito
-        // socket.close();
     }
 
-    public static void log(String s) {
-        System.out.print(s);
-    }
-
-    public static DatagramPacket receive(DatagramSocket socket, byte[] buffer) throws Exception {
+    /**
+     * Riceve un pacchetto sulla @param socket, scrivendo nel @param buffer
+     * @return il pacchetto ricevuto
+     * @throws IOException
+     */
+    public static DatagramPacket receive(DatagramSocket socket, byte[] buffer) throws IOException {
         final DatagramPacket received = new DatagramPacket(buffer, buffer.length);
         socket.receive(received);
         return received;
     }
 
+    /**
+     * Estrae la stringa dal pacchetto @param received
+     * @return la stringa estratta
+     */
     public static String getMessage(DatagramPacket received) {
         return new String(received.getData(), 0, received.getLength());
     }
 
-    public static void send(DatagramSocket socket, byte[] buffer, InetAddress address, int port, String message) throws Exception {
+    /**
+     * Invia un pacchetto all'indirizzo @param address, porta @param port conentente come messaggio @param message attraverso la @param socket con @param buffer
+     * @throws IOException
+     */
+    public static void send(DatagramSocket socket, byte[] buffer, InetAddress address, int port, String message) throws IOException {
         buffer = message.getBytes();
         DatagramPacket toSend = new DatagramPacket(buffer, buffer.length, address, port);
         socket.send(toSend);
