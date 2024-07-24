@@ -142,6 +142,31 @@
 
 == Cos'è una rete
 
+=== Commutazione
+
+È la scelta di un percorso (inteso come linea di ingresso-uscita) al fine di inviare un messaggio.
+
+==== Commutazione di circuito
+
+==== Commutazione di messaggio
+
+Il messaggio viene inviato per intero sulla rete.
+
+Svantaggi:
+- Il messaggio può raggiungere grandi dimensioni
+- Difficile gestione nei nodi (ordine di instradamento, precendenze tra i messaggi)
+- Difficoltà nell'allocare memoria data la variabilità della dimensione
+- Se corrotto va reinviato interamente
+
+==== Commutazione di pacchetto
+
+Il messaggio viene inviato tramite pacchetti di dimensione standard.
+
+Svantaggi:
+- È necessaria una decomposizione e poi ricomposizione del messaggio
+- Intestazioni ripetute su ogni pacchetto
+- Tempo di arrivo e ordine non predicibile
+
 === Tipologie di rete
 
 - LAN
@@ -160,9 +185,16 @@
 
 === Rete affidabile
 
-- Ordine originale
-- No duplicati
-- Pacchetti corretti
+Per garantire affidabilità di una trasmissione è necessario soddisfare tre proprietà:
+
+- ogni pacchetto deve essere *corretto*
+- garantire l'*ordine originale* dei pacchetti
+- *assenza* di pacchetti *duplicati*
+
+È possibile utilizzare due approcci garantire affidabilità:
+
+- ogni *coppia di nodi* rende affidabile il link che li collega
+- i *nodi agli estremi* rendeono affidabile l'intera trasmissione
 
 == Composizione di una rete
 
@@ -211,10 +243,12 @@ Tabella di forwarding:
 
 ==== Router (livello 3)
 
-Composto da:
-- code di ingresso e uscita (buffer)
-- scheduler: decide quale e quando esaminare un pacchetto
-- interprete: analizza un pacchetto e lo manda su una coda di uscita
+Ogni nodo della rete è un *router*, collegati tra loro attraverso dei *link*. Ogni router ha al suo interno almeno un'*interfaccia di rete*, a sua volta composta da *due code* (buffer): una d'ingresso e una d'uscita.
+
+Il router funziona grazie a tre processi:
+- *scheduler*: si occupa di gestire quando e quali messaggi esaminare
+- *interprete*: esamina i messaggi e li passa al processo di routing
+- *routing*: determina in quale coda d'uscita mandare il pacchetto, attraverso la consultazione delle *tabelle di routing* (instradamento)
 
 === Mezzi trasmissivi (cavi)
 
@@ -222,6 +256,11 @@ Composto da:
 - Fibra: $3 dot 10^8 space b p s$
 
 == Regole di una rete: protocolli
+
+Un protocollo è un algoritmo distribuito, che organizza la comunicazione tra entità:
+
+- realizza le *macchine a stati finiti* che governano le entità
+- impone una *serie di convenzioni* sui messaggi scambiati
 
 === Modello ISO/OSI
 
@@ -247,6 +286,18 @@ Composto da:
 #informalmente[
   Standard de facto
 ]
+
+== Unità di misura
+
+Utilizzeremo soprattutto $s$ (secondi), $b$ (bit) e $B$ (byte), con relativi multipli:
+
+- $T$ tera: $10^12$
+- $G$ giga: $10^9$
+- $M$ mega: $10^6$
+- $K$ kilo: $10^3$
+- $m$ milli: $10^(-3)$
+- $mu$ micro: $10^(-6)$
+- $n$ nano: $10^(-9)$
 
 = Livello 2: Data Link _(Livello 1 TCP/IP)_
 
@@ -532,6 +583,25 @@ IEEE 802.1Q
   Appena si ha da trasmettere si trasmette, se avviene una collisione si aspetta tempo randomico $t$ (calcolato basandosi su una Poisson). Non ci si ferma appena avviene una collisione ma si trasmette comunque tutto
 ]
 
+Algoritmo *probabilistico* per gestire reti broadcast, cercando di limitare le collisioni.
+
+Viene designato un _centro_, a cui tutti i dispositivi trasmettono, chiamato _satellite_. Il satellite ritrasmette in _maniera passiva_ a tutte le stazioni collegate ad esso.
+
+Le regole del protocollo sono molto _banali_:
+
+- Se hai dati da mandare, *mandali* _(*senza* controllare che nessun altro stia trasmettendo)_
+- Se stai mandando dati e ricevi dati da un'altra stazione, allora c'è stata una collisione. Tutte le stazioni dovranno ritrasmettere *più tardi*
+
+La parte importante del protocollo è il _"più tardi"_ in caso di collisioni, ovvero la parte _probabilistica_ dell'algoritmo, basato su delle assunzioni:
+
+- tutti i frame hanno la stessa lunghezza
+- tutte le stazioni hanno un solo frame da mandare alla volta _(non sono presenti code)_
+- le stazioni che provano a trasmettere seguono una #link("https://en.wikipedia.org/wiki/Poisson_distribution")[distribuzione di Poisson]
+
+Viene calcolato un *tempo randomico* $T$ _(sfruttando queste assunzioni)_ e viene riprovata la trasmissione.
+
+L'efficienza dell'algoritmo ALOHA è calcolata del *18.4%*, ovvero solo il 18% del tempo totale è utilizzato per trasmissioni con successo.
+
 ===== Carrier Sense Multiple Access with Collision Detection (CSMA-CD)
 
 #informalmente[
@@ -540,13 +610,27 @@ IEEE 802.1Q
   Quando avviene una collisione, allora si interrompe subito la trasmissione e si aspetta tempo randomico che aumenta esponenzialmente (BEB, spiegato sotto) (per 15 volte, dopo si abortisce la comunicazione)
 ]
 
-#attenzione[
-  Per poter rilevare una collisione, il tempo di trasmissione deve essere maggiore della propagazione:
-  $ t_x > 2 t_p $
-  #informalmente[
-    Altrimenti la stazione non sa se a collidere è stato un suo frame o meno
-  ]
+
+Protocollo (ormai obsoleto) utilizzato su ethernet non #link("https://en.wikipedia.org/wiki/Duplex_(telecommunications)")[full-duplex]. Permette una migliore efficienza rispetto all'ALOHA.
+
+Funzionamento del protocollo:
+
+- se il cavo non è _IDLE_, allora aspetta
+- se il cavo è _IDLE_, allora inizia a trasmettere
+  - se avviene una collisione (quello che viene inviato è diverso da quello che si riceve), allora:
+    - trasmetti un segnare di JAM fino a garantire la grandezza minima del frame (garantire che tutte le stazioni rilevano la collisione)
+    - incrementa il _Retrasmission counter_
+    - se il _Retrasmission counter_ ha raggiunto il numero massimo di tentativi, allora annulla la trasmissione
+    - altrimenti, aspetta il tempo calcolato usando il _Random backoff period_ e riprova
+
+Per garantire che tutte le stazioni rilevino la collisione, è necessario che il *tempo di trasmissione* sia maggiore di *due volte il tempo di propagazione* $t_x > 2 t_p$. Questo è garantito dallo standard *IEEE 802.3*, che impone dei vincoli sulla _lunghezza dei cavi_ (massimo 2500 metri) e la _grandezza dei frame_ (minimo 64 Byte).
+
+#informalmente[
+  Per rilevare una collisione vengono confrontati i dati in _uscita_ con quelli in _entrata_. Questo è possibile solo se i dati _"di ritorno"_ (natura broadcast della rete) sono abbastanza veloci a tornare *prima* che l'*invio del frame sia finito*. Questo è descritto da: $ t_x > 2 t_p $
+  Di conseguenza, se il cavo è troppo lungo (o il frame è troppo piccolo), allora questo meccanismo non funziona, in quanto l'host non riscirà a capire se la frame che ha colliso fosse sua oppure no.
 ]
+
+Una volta rilevata una _collisione_, allora gli host _aspettano_ generando un *tempo randomico di backoff*. Questo tempo è *esponenziale* rispetto al _numero di tentativi falliti_ (*retrasmission counter*).
 
 - 1P: carrier sense persistente, appena si libera trasmetto
 - 0P (termine non standard): carrier sense a intervalli randomici, se libero trasmetto, altrimenti aspetto tempo random
@@ -894,72 +978,282 @@ Soluzioni:
 
 = Livello 4: Trasporto _(Livello 3 TCP/IP)_
 
+Unità: fragment
+
 == Transmission Control Protocol (TCP)
+
+#informalmente[
+  Protocollo affidabile, stabilisce una connessione logica
+]
 
 === Header e Pseudoheader TCP
 
+#figure(caption: "Header TCP")[#image("imgs/tcp-header.png", width: 70%)]
+
+#informalmente[
+  Il pacchetto viaggia da un IP:porta ad un altro IP:porta, ma gli IP sono già nel pacchetto IP, inutile duplicarli nell'header TCP.
+
+  Però il checksum viene effettuato anche andando ad estrarre i dati dal pacchetto IP, prendendo il nome di pseudoheader
+]
+
 === Fasi della connessione
+
+- Apertura
+- Comunicazione
+- Chiusura
 
 ==== Apertura: three way handshake
 
+#figure(caption: "Header TCP")[#image("imgs/tcp-apertura.png", width: 60%)]
+
 ==== Comunicazione
+
+#informalmente[
+  Scambio di dati tra i due host
+]
 
 ===== Controllo del flusso
 
-====== Finestra di ricezione (Window Size) $W_s$
+====== Window Size $W_s$
+
+#attenzione[
+  Viene chiamata anche _Advertised window_
+]
+
+#informalmente[
+  La finestra di ricezione viene negoziata tra il client ed il server quando viene stabilita la connessione.
+
+  #nota[
+    In realtà è scelta dal server e comunicata
+  ]
+
+  È quanto spazio il server ha disponibile per ricevere dati. Inizialmente sarà grande come la grandezza del buffer, mano a mano che riceve dati si riduce, comunicandolo al client.
+
+  #attenzione[
+    In realtà entrano in gioco altri controlli e va gestista anche la *congestione*
+  ]
+
+  #nota[
+    Quando è grande più di 1MSS, allora significa che il client può mandare più segmenti senza aspettare il relativo ACK prima di mandarne di nuovi (protocollo a finestra)
+  ]
+]
 
 ====== Persistent timer
 
+#informalmente[
+  Salvaguarda il client.
+
+  In caso che il client riceva una $W_s = 0$, allora deve aspettare fino ad una nuova notifica di finestra più grande per poter mandare dati. Ma se questo pacchetto si perde?
+
+  Allora il client fa partire un timer, quando scade manda un _*Window probe*_ al server, richiedendo esplicitamente al server l'ACK
+
+  #nota[
+    In caso il server non risponda ai window probe viene chiusa la connessione
+  ]
+]
+
 ====== Keep alive timer
 
-====== Silly Window Syndrome: Algoritmo di Clark
+#informalmente[
+  Salvaguarda il server.
 
-https://en.wikipedia.org/wiki/Silly_window_syndrome
+  In caso il server non riceva nulla per un timer di tempo, allora manda un _*Keep alive probe*_ per controllare che il client non si sia disconnesso senza comunicarlo (ad esempio spento il PC). Se non risponde dopo un numero di probe, allora chiude la connessione
+]
 
-min(1/2 \* buiffersize, MaximumSegmentSize)
+====== Silly Window Syndrome
 
-====== Cumulative ACK
+#informalmente[
+  Quando un estremo della connessione TCP è molto lento a produrre/consumare i dati da inviare/ricevuti, allora si avrà un graduale restringimento della finestra e l'invio di segmenti sempre più piccoli, causando un utilizzo inefficiente del canale.
 
-====== Delayed ACK: Algoritmo di Nagle
+  #attenzione[
+    Può avvenire in entrambi i sensi, sia con client veloce e server lento che viceversa. In base al caso si utilizzano due soluzioni diverse _(descritte sotto)_
+  ]
+]
 
-Timer di piggybacking
+======= Algoritmo di Clark
 
-https://en.wikipedia.org/wiki/Nagle's_algorithm
+Caso in cui il consumatore (server) è molto lento a leggere i dati dal buffer.
+
+#informalmente[
+  Il server è molto lento, quindi il buffer si svuota molto lentamente (ad esempio 1B alla volta). Per evitare di mandare tantissimi ACK con Window size minuscole (cresce di solo 1B), allora viene adottata la soluzione di Clark:
+
+  si aspetta a mandare una nuova Window size fino a quando non è almeno:
+  $ min(1/2 "bufferSize", "MSS") $
+
+  #nota[
+    MSS = Maximum Segment Size, la grandezza massima di un singolo segmento che può transitare sulla rete
+  ]
+]
+
+======= Algoritmo di Nagle (Delayed ACK)
+
+Caso in cui il produttore (client) è molto lento a produrre dati.
+
+#informalmente[
+  Il client è molto lento a produrre dati, ad esempio produce un byte alla volta (ad esempio una connessione netcat, ogni carattere premuto).
+
+  Il problema è quindi mandare tanti piccoli messaggi con tanto overhead (20B IP + 20B TCP) per pochissimo payload (1B). La soluzione è usare l'algoritmo di Nagle e il *Timer di piggybacking*.
+
+  Il server quando gli arriva un solo segmento più piccolo rispetto al MSS e alla Window size, allora aspetta o la ricezione di altri messaggi o un timer (di piggybacking) prima di mandare l'ACK.
+
+  In questo tempo di "attesa" i messagi sul client si accumuleranno, mandando un unico frammento più grande
+]
 
 ===== Gestione degli errori
 
+#informalmente[
+  Quando vengono persi degli ACK o dei fragment
+]
+
 ====== Retrasmission Timeout (RTO)
 
-====== Retransmission ambiguity problem: politica di Karn
+#informalmente[
+  Come a livello 2 affidabile, quando viene mandato un messaggio si fa partire un timer (RTO), se non arriva un ACK prima della fine del timer, allora viene rimandato lo stesso messaggio
+]
+
+======= Calcolo RTO
+
+#nota[
+  - RTT = Sampled rount trip time
+  - Var = Varianza RTT
+  - SRTT = Smoothed RTT
+]
+
+Tempo 0:
+- RTO = 3 sec (da RFC è stato modificato a 1 sec)
+
+Tempo 1:
+- $S R T T = R T T$
+- $R T T"Var" = (R T T) / 2$
+- $R T O = S R T T + 4 dot R T T"Var"$
+
+Tempo 2 o più:
+- $S R T T = (1 - alpha) S R T T_"old" + alpha R T T$
+- $R T T"Var" = (1 - beta) R T T"Var"_"old" + beta |R T T - S R T T_"old"|$
+- $R T O = S R T T + 4 dot R T T"Var"$
+
+======= Retransmission ambiguity: politica di Karn
+
+#informalmente[
+  Se viene perso un messaggio e scatta l'RTO, allora viene rimandato lo stesso messaggio. Il tempo di ritorno dell'ACK (RTT) deve venir usato per calcolare il prossimo RTO.
+
+  Ma come faccio a sapere se l'ACK che ho ricevuto è solo stato molto lento ma del primo segmento che ho mandato o se si era perso e quindi l'ACK è del secondo segmento?
+
+  Non viene scelto nessuno dei due, viene usata la *politica di Karn*, semplicemente il nuovo RTO è dimezzato:
+  $ R T O = (R T O_"old") / 2 $
+]
 
 ====== Fast retrasmission
 
-Rimanda il segmento quando riceve tre ACK duplicati, prima che il RTO scada
+#informalmente[
+  Abbiamo detto che un segmento è rimandato quando scatta il suo RTO. Ma se stiamo mandando tanti segmenti alla volta e riceviamo tanti ACK cumulativi duplicati vuol dire che tanti segmenti fuori sequenza sono stati ricevuti.
 
-https://superuser.com/questions/267729/tcp-retransmission-vs-tcp-fast-retransmission
+  Quindi il problema non è la lentezza della rete, ma è molto probabile se si sia perso (dato che gli altri sono stati ricevuti), quindi è inutile aspettare il timer di RTO ma possiamo rimandare subito il segmento. Questo meccanismo scatta con 3 ACK cumulativi duplicati
+
+  #nota[
+    Fast retrasmit perchè appunto non aspetta lo scadere dell'RTO ma rimanda prima
+  ]
+]
 
 ====== Timestamp
 
+#informalmente[
+  All'interno dell'header TCP vengono inseriti dei timestamp, in modo che non si possano creare ambiguità (Retrasmission ambiguity) e sia più facile calcolare RTT (sottrazione tra timestamp invio e tempo alla ricezione)
+]
+
 ===== Controllo della congestione: finestra di congestione $W_c$
 
-- Slow start fino a Slow Start Treshold SST
-- Congestione advoidance
-- Constant
+#informalmente[
+  Non basta gestire la finestra che il server può ricevere (window size), bisogna anche tenere conto della congestione della rete.
 
-Errori:
+  Per fare ciò si utilizza la finestra di congestione, che è sempre limitata superiormente dalla window size.
 
-- scade il timer RTO
-- ACK duplicati
+  Si inizia con una finestra di congestione piccola e la sin ingrandisce fino a quando non ci sono dei problemi (o si raggiunge la Window size)
+]
+
+====== Slow start
+
+#informalmente[
+  Si inizia mandano poco alla volta: di solito 1MSS.
+
+  Per ogni ACK ricevuto allora si ingrandisce la finestra di 1, effettivamente *duplicando* la grandezza della finstra ogni volta.
+
+  $ C_w = 2 dot C_w $
+
+  Questo avviene fino al ragguingimento della *Slow Start Treshold (SST)*
+]
+
+====== Congestion avoidance
+
+#informalmente[
+  Si inizia a rallentare: per ogni finestra completa tutta validata (non per ogni segmento, per ogni finestra completa) si *aumenta di 1* la grandezza della finestra, effettivamente facendo crescere linearmente la finestra
+
+  $ C_w = 1 + C_w $
+]
+
+====== Fase costante
+
+#informalmente[
+  Quando si raggiunge la Window size allora non si può più aumentare (ovviamente), quindi si continua in modo costante (se non ci sono errori ovviamente)
+
+  $ C_w = C_w $
+]
+
+#figure(caption: "Slow start treshold")[#image("imgs/congestion-window.png", width: 80%)]
+
+====== Errori
+
+In caso avvengano degli errori:
+
+- Fast retrasmit:
+  - $S S T = C_w / 2$
+  - $C_w = S S T_"new"$
+
+  #figure(caption: "Errore: fast retrasmit")[#image("imgs/congestion-window-fast-retrasmit.png", width: 80%)]
+
+- Scadenza del timer RTO:
+  - $S S T = C_w / 2$
+  - $C_w = 1 M S S$
+
+  #figure(caption: "Errore: scandeza RTO")[#image("imgs/congestion-window-rto.png", width: 80%)]
 
 ==== Chiusura
 
+#informalmente[
+  La chiusura è asimmetrica, ovvero uno dei due host comunica la chiusura quando l'altro può ancora star comunicando/ha ancora da comunicare
+]
+
 ===== Four way close
+
+Viene usata la primitiva `close()`
+
+#informalmente[
+  Chiusura da standard completa senza problemi, entrambi accettano la fine e nessuno dei due ha da trasmettere
+]
 
 #figure(caption: "TCP 4 way close")[#image("imgs/tcp-four-way-close.png", width: 40%)]
 
 ===== Three way close
 
+Viene usata la primitiva `close()`
+
+#informalmente[
+  Il client chiede la chiusura ma il server ha ancora degli ACK da mandargli, quindi viene accorpato in un unico messaggio gli N ack mancanti, l'ACK del FIN e il FIN (quindi le due freccie centrali del grafico sono unite)
+
+  #attenzione[
+    Client e server sono interscambiabili, uno ha ancora ACK da mandare mentre l'altro chiude la connessione
+  ]
+]
+
 ===== Half close
+
+Viene usata la primitiva `shutdown()`
+
+#informalmente[
+  Il client chiede di chiudere la connessione ma il server vuole ancora inviare dati
+]
+
+#figure(caption: "TCP Half close")[#image("imgs/tcp-half-close.png", width: 80%)]
 
 == User Datagram protocol (UDP)
 
@@ -995,6 +1289,10 @@ https://www.digitalocean.com/community/tutorials/http-1-1-vs-http-2-what-s-the-d
 
 ==== Compressione
 
+=== HTTP/3
+
+==== QUIC (over UDP)
+
 === HTTPS
 
 == Email
@@ -1019,287 +1317,93 @@ https://www.digitalocean.com/community/tutorials/http-1-1-vs-http-2-what-s-the-d
 
 == Session Initiation Protocol (SIP) e Voice over IP (VoIP)
 
-
-
-
-
-
-
-
-
-
-
-
-#pagebreak()
 // numerazione appendici
 #set heading(numbering: "A.1.")
 #counter(heading).update(0)
 
 = Lista acronimi
 
-- FQDN: Fully Qualified Domain Name
+/ AS: Autonomous System
+/ BEB: Binary Exponential Backoff
+/ BGP: Border Gateway Protocol
+/ CIDR: Classless Inter-Domain Routing
+/ CSMA-CD: Carrier Sense Multiple Access with Collision Detection
+/ DASH: Dynamic Adaptive Streaming over HTTP
+/ DHCP: Dynamic Host Configuration Protocol
+/ DNS: Domain Name System
+/ DV : Distance Vector
+/ FQDN: Fully Qualified Domain Name
+/ FTP: File Transfer Protocol
+/ HDLC: High-Level Data Link Control
+/ HTTP: Hyper Text Transfer Protocol
+/ HTTPS: Hyper Text Transfer Protocol Secure
+/ IANA: Internet Assigned Numbers Authority
+/ ICMP: Internet Control Message Protocol
+/ IMAP: Internet Message Access Protocol
+/ IP: Internet Protocol
+/ IPv4: Internet Protocol Version 4
+/ IPv6: Internet Protocol Version 6
+/ ISP: Internet Service Provider
+/ LAN: Local Area Network
+/ LLC: Logical Link Control
+/ LS: Link State
+/ MAC: Multiple Access Control and Media Access Control
+/ MAN: Metropolitan Area Network
+/ MPLS: Multi Packet Label Switching
+/ MSS: Maximum Segment Size
+/ MTA: Message Transfer Agent
+/ MTU: Maximum Transmission Unit
+/ NAT: Network Address Translation
+/ NRZI: Non Return to Zero Inverted
+/ OSPF: Open Shortest Path First
+/ PISO: Parallel In Serial Out
+/ POP3: Post Office Protocol
+/ PPP: Point-to-Point Protocol
+/ QoS: Quality of Service
+/ RED: Random Early Detection
+/ RIP: Routing Information Protocol
+/ RARP: Reverse Address Resolution Protocol
+/ RTD: Round Trip Delay
+/ RTO: Retrasmission Timeout
+/ RTT: Round Trip Time
+/ SDN: Software Defined Network
+/ SIPO: Serial In Parallel Out
+/ SIP: Session Initiation Protocol
+/ SMTP: Simple Mail Transfer Protocol
+/ SNMP: Simple Network Management Protocol
+/ SST: Slow Start Threshold
+/ TCP: Transmission Control Protocol
+/ UA: User Agent
+/ UDP: User Datagram Protocol
+/ VLAN: Virtual Local Area Network
+/ VoIP: Voice over IP
+/ WAN: Wide Area Network
+/ WFQ: Weighted Fair Queuing
 
 = Esercizi
 
-#pagebreak()
-#pagebreak()
-
-#line(length: 100%)
-= #text(size: 20pt, top-edge: 50pt)[APPUNTI "VECCHI" DA SMISTARE:]
-
-= Concetti preliminari/Varie
-
-== Protocollo
-
-Un protocollo è un algoritmo distribuito, che organizza la comunicazione tra entità:
-
-- realizza le *macchine a stati finiti* che governano le entità
-- impone una *serie di convenzioni* sui messaggi scambiati
-
-== Unità di misura
-
-Utilizzeremo soprattutto $s$ (secondi), $b$ (bit) e $B$ (byte), con relativi multipli:
-
-- $T$ tera: $10^12$
-- $G$ giga: $10^9$
-- $M$ mega: $10^6$
-- $K$ kilo: $10^3$
-- $m$ milli: $10^(-3)$
-- $mu$ micro: $10^(-6)$
-- $n$ nano: $10^(-9)$
-
-= Roba da spostare al suo posto
-// TODO: spostare questa roba all'interno del suo livello/capitolo
-== Commutazione
-
-È la scelta di un percorso (inteso come linea di ingresso-uscita) al fine di inviare un messaggio.
-
-/ Commutazione di messaggio:
-
-Il messaggio viene inviato per intero sulla rete.
-
-Svantaggi:
-- Il messaggio può raggiungere grandi dimensioni
-- Difficile gestione nei nodi (ordine di instradamento, precendenze tra i messaggi)
-- Difficoltà nell'allocare memoria data la variabilità della dimensione
-- Se corrotto va reinviato interamente
-
-/ Commutazione di messaggio:
-
-Il messaggio viene inviato tramite pacchetti di dimensione standard.
-
-Svantaggi:
-- È necessaria una decomposizione e poi ricomposizione del messaggio
-- Intestazioni ripetute su ogni pacchetto
-- Tempo di arrivo e ordine non predicibile
-
-== Router
-
-Ogni nodo della rete è un *router*, collegati tra loro attraverso dei *link*. Ogni router ha al suo interno almeno un'*interfaccia di rete*, a sua volta composta da *due code* (buffer): una d'ingresso e una d'uscita.
-
-Il router funziona grazie a tre processi:
-- *scheduler*: si occupa di gestire quando e quali messaggi esaminare
-- *interprete*: esamina i messaggi e li passa al processo di routing
-- *routing*: determina in quale coda d'uscita mandare il pacchetto, attraverso la consultazione delle *tabelle di routing* (instradamento)
-
-== Canale di trasmissione
-
-Il cavo di trasmissione collega due dispositivi di rete, utilizzando delle porte *PISO* (Parallel In, Sequential Out)
-
-== Tempi di invio e ricezione dei paccehtti
-
-/ Tempo di latenza $T$:
-
-Tempo totale impegato dal pacchetto per essere spedito e ricevuto.
-
-$ T = t_"coda" + t_"elaborazione" + t_"trasmissione" + t_"propagazione" $
-
-- $t_"coda"$: (generalmente trascurabile) tempo di permanenza nella coda di invio
-- $t_"elaborazione"$: (generalmente trascurabile) tempo impegato dal nodo per decidere come inoltrare il pacchetto
-- $t_"trasmissione"$: $"dimensione pacchetto"/"bitrate"$ tempo necessario per trasferire i dati dal dispositivo al mezzo fisico
-- $t_"propagazione"$: $"distanza"/"velocità mezzo"$ tempo che impega l'informazione ad arrivare da un capo all'altro del mezzo fisico
-
-=== Larghezza di banda e Clock
-
-Grandezza relativa al materiale del canale che determina il limite superiore del tasso con cui si possono trasmettere bit su di esso.
-
-#informalmente[
-  Vedendo il cavo come un tubo e la corrente come acqua, la larghezza di banda è il quanto velocemente il tubo "aspira" via quello che gli viene immesso. Se viene immessa una piccola quantità di acqua ma troppo velocemente e il tubo non "aspira" abbastanza velocemente, allora si creano dei problemi
-]
-
-#attenzione[
-  La larghezza di banda limita la velocità di clock di trasmissione
-]
-
-=== Velocità di trasmissione $V_X$
-
-Espressa in $b p s$ (bit per second).
-
-#nota[
-  Un *clock* associato ad una *porta* di input/output determina la velocità di trasmissione sul canale
-]
-
-#informalmente[
-  Massima velocità alla quale si possono "inserire" informazioni nel cavo
-]
-
-=== Tempo di trasmissione $T_X$
-
-Espresso in $s$ (secondi), numero di bit da inviare diviso per la velocità di trasmissione
-
-$ T_X = N / V_X $
-
-#informalmente[
-  Tempo necessario per "inserire" nel cavo tutti i dati che vogliamo mandare
-]
-
-== Affidabilità
-
-Per garantire affidabilità di una trasmissione è necessario soddisfare tre proprietà:
-
-- ogni pacchetto deve essere *corretto*
-- garantire l'*ordine originale* dei pacchetti
-- *assenza* di pacchetti *duplicati*
-
-È possibile utilizzare due approcci garantire affidabilità:
-
-- ogni *coppia di nodi* rende affidabile il link che li collega
-- i *nodi agli estremi* rendeono affidabile l'intera trasmissione
-
-=== Acknowledgment (ACK)
-
-Messaggio inviato dal ricevente di un pacchetto verso il mittente per informarlo dell'arrivo del messaggio.
-
-=== Round Trip Time $R T T$
-
-Tempo impegato per inviare un pacchetto e ricevere una risposta (informalmente PING).
-
-$ "RTT" = t_x + 2 t_p $
-
-#informalmente[
-  RTT = tempo di trasmissione del primo messaggio + tempo di propagazione + tempo di trasmissione dell'ack (trascurabile) + tempo di propagazione dell'ack (uguale al primo perché utilizza lo stesso percorso)
-]
-
-=== Round Trip Delay $R T D$
-
-Tempo di propagazione per andata e ritorno
-
-$ "RTD" = 2 t_p $
-
-=== Timer di ritrasmissione $R T O$
-
-Il tempo di ritrasmissione (Retransmission Time-Out) è il tempo massimo che il mittente aspetta un ack dal destinatario dopo il quale verrà reinviato il pacchetto. L'RTO è sufficiente che sia leggermente più grande del RTT.
-
-$ T_R = "RTT" + epsilon, epsilon > 0 $
-
-Con $epsilon$ solitamente 1 o 2 ms
-
-=== Varianza o Jitter
-
-Il _Jitter_ è la varianza tra i tempi di latenza dei vari pacchetti.
-
-Tra due pacchetti arrivati a $t_1$ e $t_2$ con $t_1 = t_2 + a$ la varianza è $a$.
-
-Per compensare problemi di latenza e di pacchetti persi nelle applicazioni real time si utilizza un buffer di riproduzione.
-
-=== Latenza //??
-
-= Livello 2 - Data Link
-
-== Framing
-
-Normalmente andrebbe aggiunga un'intestazione _STX_ (Start of text) in testa e una _ETX_ (End of Text) in coda.
-
-Ma siccome _STX_ ed _ETX_ possono trovarsi all'interno dei dati possiamo utilizzare due tecniche per rendere uniche le intestazioni:
-
-/ Character Stuffing:
-- A _STX_ e _ETX_ sostituisco _DELSTX_ e _DELETX_
-- In fase di tramissione duplico ogni _DEL_ all'interno del frame
-- In ricezione elimino tutti i _DEL_ duplicati
-- Se quando si legge un _DEL_ subito dopo si trova un _ETX_ allora sono in coda //TODO: da rivedere
-
-/ Bit Stuffing:
-
-In testa e in coda vengono utilizzate delle sequenze di n bit a 1 (ad esempio 6).
-
-In fase di tramissione per ogni sequenza di 5 bit a 1 viene inserito un bit a 0 che verrà scartato in fase di ricezione.
-
-== Data Link affidabile
-
-Di seguito vengono presentati alcuni protocolli per la tramissione affidabile a livello 2 (anche se non più usati).
-
-Questi protocolli utilizzato il metodo _ARQ_ (Automatic Repeat Request).
-
-
-=== ALOHA
-
-Algoritmo *probabilistico* per gestire reti broadcast, cercando di limitare le collisioni.
-
-Viene designato un _centro_, a cui tutti i dispositivi trasmettono, chiamato _satellite_. Il satellite ritrasmette in _maniera passiva_ a tutte le stazioni collegate ad esso.
-
-Le regole del protocollo sono molto _banali_:
-
-- Se hai dati da mandare, *mandali* _(*senza* controllare che nessun altro stia trasmettendo)_
-- Se stai mandando dati e ricevi dati da un'altra stazione, allora c'è stata una collisione. Tutte le stazioni dovranno ritrasmettere *più tardi*
-
-La parte importante del protocollo è il _"più tardi"_ in caso di collisioni, ovvero la parte _probabilistica_ dell'algoritmo, basato su delle assunzioni:
-
-- tutti i frame hanno la stessa lunghezza
-- tutte le stazioni hanno un solo frame da mandare alla volta _(non sono presenti code)_
-- le stazioni che provano a trasmettere seguono una #link("https://en.wikipedia.org/wiki/Poisson_distribution")[distribuzione di Poisson]
-
-Viene calcolato un *tempo randomico* $T$ _(sfruttando queste assunzioni)_ e viene riprovata la trasmissione.
-
-L'efficienza dell'algoritmo ALOHA è calcolata del *18.4%*, ovvero solo il 18% del tempo totale è utilizzato per trasmissioni con successo.
-
-=== CSMA-CD 1P
-
-Protocollo (ormai obsoleto) utilizzato su ethernet non #link("https://en.wikipedia.org/wiki/Duplex_(telecommunications)")[full-duplex]. Permette una migliore efficienza rispetto all'ALOHA.
-
-Funzionamento del protocollo:
-
-- se il cavo non è _IDLE_, allora aspetta
-- se il cavo è _IDLE_, allora inizia a trasmettere
-  - se avviene una collisione (quello che viene inviato è diverso da quello che si riceve), allora:
-    - trasmetti un segnare di JAM fino a garantire la grandezza minima del frame (garantire che tutte le stazioni rilevano la collisione)
-    - incrementa il _Retrasmission counter_
-    - se il _Retrasmission counter_ ha raggiunto il numero massimo di tentativi, allora annulla la trasmissione
-    - altrimenti, aspetta il tempo calcolato usando il _Random backoff period_ e riprova
-
-Per garantire che tutte le stazioni rilevino la collisione, è necessario che il *tempo di trasmissione* sia maggiore di *due volte il tempo di propagazione* $T_X > 2 T_P$. Questo è garantito dallo standard *IEEE 802.3*, che impone dei vincoli sulla _lunghezza dei cavi_ (massimo 2500 metri) e la _grandezza dei frame_ (minimo 64 Byte).
-
-#informalmente[
-  Per rilevare una collisione vengono confrontati i dati in _uscita_ con quelli in _entrata_. Questo è possibile solo se i dati _"di ritorno"_ (natura broadcast della rete) sono abbastanza veloci a tornare *prima* che l'*invio del frame sia finito*. Questo è descritto da: $ T_X > 2 T_P $
-  Di conseguenza, se il cavo è troppo lungo (o il frame è troppo piccolo), allora questo meccanismo non funziona, in quanto l'host non riscirà a capire se la frame che ha colliso fosse sua oppure no.
-]
-
-Una volta rilevata una _collisione_, allora gli host _aspettano_ generando un *tempo randomico di backoff*. Questo tempo è *esponenziale* rispetto al _numero di tentativi falliti_ (*retrasmission counter*).
-
-== Codifica di Manchester
-
-Lo scopo della codifica di Manchester è quello di trasferire, oltre alla sequenza di bit, anche il *clock del trasmettitore*, in modo da *sincronizzarlo* con il ricevente.
-
-#informalmente[
-  Convenzionalmente, per trasmettere 0 si mandano sul cavo 0V, mentre per trasmettere 1, 5V. Per garantire maggiore robustezza è preferibile utilizzare codifiche che permettono di distinguere la lunghezza di una sequenza tutta uguale
-]
-
-Per fare ciò applica dei frequenti cambi di tenzione, anche per trasmettere sequenze di bit uguali:
-- $1$ viene codificato come un *fronte crescente*, prima _low_ poi _high_
-- $0$ viene codificato come un *fronte decrescente*, prima _high_ poi _low_
-
-#attenzione[
-  La "larghezza" di _low_ e _high_ è mezzo clock
-]
-
-#figure(caption: [Codifica di Manchester])[
-  #image("imgs/codifica-di-machester.png", width: 70%)
-]
-
-È necessaria però una fase di *sincronizzazione iniziale*, questa viene fatta attraverso il *preambolo*, ovvero 7 Byte, tutti nel formato `10101010` ed un ottavo `10101011`, chiamato flag di start.
-
-#informalmente[
-  La forma del preambolo è dovuto al fatto che alternare uni e zeri, permettere di ottenere esattamente *un cambio di fronte* ogni *colpo di clock* (cosa non vera con sequenze di bit arbitrarie)
-]
-
-Utilizzando questo meccanismo, l'utilizzo del canale diventa:
-$ U = T_x / (t_x + 2 t_p ?? $
+- Massimizzare grandezza finestra:
+  - calculare $U$ (senza $k$)
+  - trovare $k$ che lo fa avvicinare a $1$
+  - _parte non sicura, non è detto che serva_: questo $k$ è rappresentabile con dei bit (quindi a potenza di 2)?:
+    - in base a se è gobackn ($N+1$) o selective repeat ($2N$), allora capire quanti indentificati diversi servono
+    - se il numero di identificatori è multiplo di 2 allora ok, altrimenti spiegare perchè si sprecherebbero dei bit
+
+- Calcolare grandezza minima frame:
+  - imporre $t_x > 2t_p$
+  - sostituire $t_x$ con $N / "banda"$
+  - isolare $N$ e risolvere
+  - in caso ci siano ripetitori che danno aggiungono ritardo, sommarli a $t_p$
+
+
+- Esercizi in generali sui tempi di propagazione:
+  - sostituire tutti i dati che abbiamo e isolare l'incognita
+
+- Frammentare un pacchetto IP in modo che possa passare da una LAN ethernet
+  - massima dimensione per rete ethernet: 1500B (1480 payload + 20 header IP)
+  - header importanti:
+    - identification: uguale in tutti i nuovi pacchetti
+    - more fragments: tutti a 1 tranne l'ultimo
+    - fragment offset: somma dei pacchetti precedenti / 8 (è un offset a gruppi di 8 Byte
+    - payload size: grandezza totale prima di essere frammentato
+    - fragment size: grandezza del payload di questo pacchetto
