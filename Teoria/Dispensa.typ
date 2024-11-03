@@ -1,3 +1,6 @@
+//       !!! IMPORTANT !!!
+// Typst Compiler Version 0.11.0
+
 #import "@preview/gentle-clues:0.8.0": *
 #import "@preview/cetz:0.2.2"
 #import "@preview/codly:0.2.0": *
@@ -118,7 +121,7 @@
 
 #heading(outlined: false, bookmarked: false, numbering: none, "Autori, Ringraziamenti e Licenza")
 
-/ Autori: #link("https://github.com/Favo02")[Luca Favini] _(indice)_, #link("https://github.com/???")[???] _(chi li finirà per Settembre???)_
+/ Autori: #link("https://github.com/Favo02")[Luca Favini]
 / Ringraziamenti: #link("https://github.com/LucaCorra02")[Luca Corradini] _(appunti)_, #link("https://github.com/michelebolis")[Michele Bolis] _(appunti)_, #link("https://github.com/alsacchi")[Andrea Sacchi] _(revisione)_
 / Sorgente e Licenza: #link("https://github.com/Favo02/reti-di-calcolatori")[github.com/Favo02/reti-di-calcolatori] (#link("https://creativecommons.org/licenses/by/4.0/")[CC-BY-4.0])
 / Ultima modifica: #datetime.today().display("[day]/[month]/[year]")
